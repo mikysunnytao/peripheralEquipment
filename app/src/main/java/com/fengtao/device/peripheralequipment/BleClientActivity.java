@@ -16,12 +16,16 @@ import android.bluetooth.le.ScanResult;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.util.Half;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import java.util.Arrays;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 
 
@@ -42,6 +46,9 @@ public class BleClientActivity extends Activity {
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner bluetoothLeScanner;
     public boolean isScanning;
+    private String  readStr;//从服务端读取的数据
+    private Handler mHandler = new Handler();
+    private String writeBackStr;//写会服务端的数据
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -149,15 +156,31 @@ public class BleClientActivity extends Activity {
         public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             UUID uuid = characteristic.getUuid();
             String valueStr = new String(characteristic.getValue());
-            Log.i(TAG, String.format("onCharacteristicRead:%s,%s,%s,%s,%s", gatt.getDevice().getName(), gatt.getDevice().getAddress(), uuid, valueStr, status));
-            logTv("读取Characteristic[" + uuid + "]:\n" + valueStr);
+            Integer readVal = Integer.valueOf(valueStr);
+            readStr = String.valueOf(readVal);
+            Log.i(TAG, String.format("onCharacteristicRead:%s,%s,%s,%s,%s", gatt.getDevice().getName(), gatt.getDevice().getAddress(), uuid, readStr, status));
+            logTv("读取Characteristic[" + uuid + "]:\n" + readStr);
+            readStr = String.valueOf(++readVal);
+            writeBackStr = readStr;
+            Timer timer = new Timer();
+            TimerTask task = new TimerTask() {
+                @Override
+                public void run() {
+                    write();
+                }
+            };
+            timer.schedule(task,60);
+
         }
 
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             UUID uuid = characteristic.getUuid();
             String valueStr = new String(characteristic.getValue());
-            Log.i(TAG, String.format("onCharacteristicWrite:%s,%s,%s,%s,%s", gatt.getDevice().getName(), gatt.getDevice().getAddress(), uuid, valueStr, status));
+            Integer writeVal  = Integer.valueOf(writeBackStr);
+            writeVal++;
+            writeBackStr = String.valueOf(writeVal);
+            Log.i(TAG, String.format("onCharacteristicWrite:%s,%s,%s,%s,%s", gatt.getDevice().getName(), gatt.getDevice().getAddress(), uuid, writeVal, status));
             logTv("写入Characteristic[" + uuid + "]:\n" + valueStr);
         }
 
@@ -251,12 +274,26 @@ public class BleClientActivity extends Activity {
         BluetoothGattService service = getGattService(UUID_SERVICE);
         if (service != null) {
             String text = mWriteET.getText().toString();
+
             BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID_CHAR_WRITE);//通过UUID获取可写的Characteristic
-            characteristic.setValue(text.getBytes()); //单次最多20个字节
+            characteristic.setValue(text); //单次最多20个字节
             mBluetoothGatt.writeCharacteristic(characteristic);
         }
     }
 
+    public void write() {
+        BluetoothGattService service = getGattService(UUID_SERVICE);
+        if (service != null) {
+            BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID_CHAR_WRITE);//通过UUID获取可写的Characteristic
+            characteristic.setValue(writeBackStr); //单次最多20个字节
+            mBluetoothGatt.writeCharacteristic(characteristic);
+        }
+    }
+
+    public void clearConsole(View view){
+        mTips.setText("");
+
+    }
     // 设置通知Characteristic变化会回调->onCharacteristicChanged()
     public void setNotify(View view) {
         BluetoothGattService service = getGattService(UUID_SERVICE);

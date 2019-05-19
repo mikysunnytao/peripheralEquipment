@@ -31,10 +31,18 @@
         android:layout_height="wrap_content"
         android:onClick="setNotify"
         android:text="@string/setNotify"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/btn_read"
         app:layout_constraintTop_toBottomOf="@+id/btn_scan" />
 
+    <Button
+        android:id="@+id/btn_clear"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:onClick="clearConsole"
+        android:text="@string/clearText"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/btn_notify"
+        app:layout_constraintTop_toBottomOf="@+id/btn_scan" />
     <EditText
         android:id="@+id/et_write"
         android:layout_width="0dp"

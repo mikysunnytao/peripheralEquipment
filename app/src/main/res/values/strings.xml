@@ -9,6 +9,7 @@
     <string name="reScan">重新扫描</string>
     <string name="read">读取</string>
     <string name="setNotify">设置通知</string>
+    <string name="clearText">清除通知</string>
     <string name="max_byte">最多20字节</string>
     <string name="write">写入</string>
 </resources>
