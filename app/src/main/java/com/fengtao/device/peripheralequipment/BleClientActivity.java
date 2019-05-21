@@ -169,7 +169,7 @@ public class BleClientActivity extends Activity {
                     write();
                 }
             };
-            timer.schedule(task,60);
+            timer.schedule(task,1000);
 
         }
 
@@ -182,6 +182,15 @@ public class BleClientActivity extends Activity {
             writeBackStr = String.valueOf(writeVal);
             Log.i(TAG, String.format("onCharacteristicWrite:%s,%s,%s,%s,%s", gatt.getDevice().getName(), gatt.getDevice().getAddress(), uuid, writeVal, status));
             logTv("写入Characteristic[" + uuid + "]:\n" + valueStr);
+            Timer timer = new Timer();
+            TimerTask task = new TimerTask() {
+                @Override
+                public void run() {
+                    read();
+                }
+            };
+            timer.schedule(task,1000);
+
         }
 
         @Override
@@ -267,6 +276,13 @@ public class BleClientActivity extends Activity {
             mBluetoothGatt.readCharacteristic(characteristic);
         }
     }
+    public void read() {
+        BluetoothGattService service = getGattService(UUID_SERVICE);
+        if (service != null) {
+            BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID_CHAR_READ_NOTIFY);//通过UUID获取可读的Characteristic
+            mBluetoothGatt.readCharacteristic(characteristic);
+        }
+    }
 
     // 注意：连续频繁读写数据容易失败，读写操作间隔最好200ms以上，或等待上次回调完成后再进行下次读写操作！
     // 写入数据成功会回调->onCharacteristicWrite()
@@ -330,7 +346,7 @@ public class BleClientActivity extends Activity {
             @Override
             public void run() {
                 APP.toast(msg, 0);
-                mTips.append(msg + "\n\n");
+                mTips.setText(msg);
             }
         });
     }

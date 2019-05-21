@@ -12,4 +12,5 @@
     <string name="clearText">清除通知</string>
     <string name="max_byte">最多20字节</string>
     <string name="write">写入</string>
+
 </resources>
