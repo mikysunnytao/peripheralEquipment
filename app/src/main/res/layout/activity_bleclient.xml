@@ -5,13 +5,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="2dp"
-    tools:context=".BleClientActivity">
+    tools:context=".activity.BleClientActivity">
 
     <Button
         android:id="@+id/btn_scan"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:onClick="reScan"
+        android:visibility="gone"
         android:text="@string/reScan" />
 
 
@@ -21,6 +22,7 @@
         android:layout_height="wrap_content"
         android:onClick="read"
         android:text="@string/read"
+        android:visibility="gone"
         app:layout_constraintEnd_toStartOf="@+id/btn_notify"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btn_scan" />
@@ -31,6 +33,7 @@
         android:layout_height="wrap_content"
         android:onClick="setNotify"
         android:text="@string/setNotify"
+        android:visibility="gone"
         app:layout_constraintStart_toEndOf="@+id/btn_read"
         app:layout_constraintTop_toBottomOf="@+id/btn_scan" />
 
@@ -40,6 +43,7 @@
         android:layout_height="wrap_content"
         android:onClick="clearConsole"
         android:text="@string/clearText"
+        android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/btn_notify"
         app:layout_constraintTop_toBottomOf="@+id/btn_scan" />
@@ -48,6 +52,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:hint="@string/max_byte"
+        android:visibility="gone"
         android:inputType="none"
         android:maxLength="20"
         app:layout_constraintEnd_toStartOf="@+id/btn_write"
@@ -60,6 +65,7 @@
         android:layout_height="wrap_content"
         android:onClick="write"
         android:text="@string/write"
+        android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/et_write"
         app:layout_constraintTop_toBottomOf="@+id/btn_notify" />

@@ -14,12 +14,29 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".BleClientActivity">
+        <activity android:name=".activity.BleClientActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <activity android:name=".activity.OnePiexlActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize|navigation|keyboard"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:finishOnTaskLaunch="false"
+            android:launchMode="singleInstance"
+            android:theme="@style/OnePixelActivity"/>
+        <!--应用进程优先级最高为1000-->
+        <!--在Manifest.xml文件中设置persistent属性为true，则可使该服务免受out-of-memory killer的影响。但是这种做法一定要谨慎，系统服务太多将严重影响系统的整体运行效率。-->
+        <service android:name=".service.BleBackgroundService"
+            android:priority="1000"
+            android:persistent="true"></service>
+        <service android:name=".service.BleBindService">
+        </service>
+        <service android:name=".service.guard.LocalService" android:enabled="true" android:exported="true"></service>
+        <service android:name=".service.guard.RemoteService" android:enabled="true" android:exported="true" android:process=":remote"></service>
+        <receiver android:name=".broadcast.OnePixelReceiver"></receiver>
     </application>
 
 </manifest>

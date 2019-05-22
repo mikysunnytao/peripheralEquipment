@@ -1,7 +1,6 @@
-package com.fengtao.device.peripheralequipment;
+package com.fengtao.device.peripheralequipment.service;
 
-import android.Manifest;
-import android.app.Activity;
+import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -13,106 +12,65 @@ import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
-import android.content.pm.PackageManager;
-import android.os.Build;
-import android.os.Bundle;
+import android.content.Intent;
+import android.os.Binder;
 import android.os.Handler;
-import android.util.Half;
+import android.os.IBinder;
 import android.util.Log;
-import android.view.View;
-import android.widget.EditText;
-import android.widget.TextView;
+
+import com.fengtao.device.peripheralequipment.APP;
+import com.fengtao.device.peripheralequipment.activity.BleClientActivity;
 
 import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 
+public class BleBindService extends Service {
 
-/**
- * BLE客户端(主机/中心设备/Central)
- */
-public class BleClientActivity extends Activity {
     private static final String TAG = BleClientActivity.class.getSimpleName();
     public static final UUID UUID_SERVICE = UUID.fromString("10000000-0000-0000-0000-000000000000"); //自定义UUID
     public static final UUID UUID_CHAR_READ_NOTIFY = UUID.fromString("11000000-0000-0000-0000-000000000000");
     public static final UUID UUID_DESC_NOTITY = UUID.fromString("11100000-0000-0000-0000-000000000000");
     public static final UUID UUID_CHAR_WRITE = UUID.fromString("12000000-0000-0000-0000-000000000000");
 
-    private EditText mWriteET;
-    private TextView mTips;
+
     private BluetoothGatt mBluetoothGatt;
     private boolean isConnected = false;
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner bluetoothLeScanner;
     public boolean isScanning;
     private String  readStr;//从服务端读取的数据
+    private final IBinder binder = new ValueChangeBinder();
     private Handler mHandler = new Handler();
     private String writeBackStr;//写会服务端的数据
+    private OnMsgChangeListener listener;
+    public class ValueChangeBinder extends Binder{
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_bleclient);
-        mWriteET = findViewById(R.id.et_write);
-        mTips = findViewById(R.id.tv_tips);
-//        mBleDevAdapter = new BleDevAdapter(new BleDevAdapter.Listener() {
-//            @Override
-//            public void onItemClick(BluetoothDevice dev) {
-//                closeConn();
-//                mBluetoothGatt = dev.connectGatt(BleClientActivity.this, false, mBluetoothGattCallback); // 连接蓝牙设备
-//                logTv(String.format("与[%s]开始连接............", dev));
-//            }
-//        });
-        BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
-        if (adapter == null) {
-            APP.toast("本机没有找到蓝牙硬件或驱动！", 0);
-            finish();
-            return;
-        } else {
-            if (!adapter.isEnabled()) {
-                //直接开启蓝牙
-                adapter.enable();
-                //跳转到设置界面
-                //startActivityForResult(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE), 112);
-            }
+        public BleBindService getService(){
+            return BleBindService.this;
         }
+    }
 
-        // 检查是否支持BLE蓝牙
-        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
-            APP.toast("本机不支持低功耗蓝牙！", 0);
-            finish();
-            return;
-        }
+    public void setMsgChangeListener(OnMsgChangeListener listener) {
+        this.listener = listener;
+    }
 
-        // Android 6.0动态请求权限
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            String[] permissions = {Manifest.permission.WRITE_EXTERNAL_STORAGE
-                    , Manifest.permission.READ_EXTERNAL_STORAGE
-                    , Manifest.permission.ACCESS_COARSE_LOCATION};
-            for (String str : permissions) {
-                if (checkSelfPermission(str) != PackageManager.PERMISSION_GRANTED) {
-                    requestPermissions(permissions, 111);
-                    break;
-                }
-            }
-        }else {
-            scanBle();
-        }
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
-//        scanBle();
+    public interface OnMsgChangeListener{
 
+        void onChange(String msg);
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode,  String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode==111){
-            if (grantResults[2]==PackageManager.PERMISSION_GRANTED){
-                scanBle();
-            }
-        }
+    public IBinder onBind(Intent intent) {
+        return binder;
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
     }
 
     // 与服务端连接的Callback
@@ -124,13 +82,18 @@ public class BleClientActivity extends Activity {
             if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_CONNECTED) {
                 isConnected = true;
                 gatt.discoverServices(); //启动服务发现
+
             } else {
                 isConnected = false;
                 scanBle();
 //                closeConn();
             }
 
-            logTv(String.format(status == 0 ? (newState == 2 ? "与[%s]连接成功" : "与[%s]连接断开") : ("与[%s]连接出错,错误码:" + status), dev));
+
+            if (listener!=null){
+                listener.onChange(String.format(status == 0 ? (newState == 2 ? "与[%s]连接成功" : "与[%s]连接断开") : ("与[%s]连接出错,错误码:" + status), dev));
+            }
+//            logTv(String.format(status == 0 ? (newState == 2 ? "与[%s]连接成功" : "与[%s]连接断开") : ("与[%s]连接出错,错误码:" + status), dev));
         }
 
         @Override
@@ -147,8 +110,12 @@ public class BleClientActivity extends Activity {
                     }
                     allUUIDs.append("}");
                     Log.i(TAG, "onServicesDiscovered:" + allUUIDs.toString());
-                    logTv("发现服务" + allUUIDs);
+                    if (listener!=null){
+                        listener.onChange("发现服务" + allUUIDs);
+                    }
+//                    logTv("发现服务" + allUUIDs);
                 }
+                read();
             }
         }
 
@@ -159,7 +126,10 @@ public class BleClientActivity extends Activity {
             Integer readVal = Integer.valueOf(valueStr);
             readStr = String.valueOf(readVal);
             Log.i(TAG, String.format("onCharacteristicRead:%s,%s,%s,%s,%s", gatt.getDevice().getName(), gatt.getDevice().getAddress(), uuid, readStr, status));
-            logTv("读取Characteristic[" + uuid + "]:\n" + readStr);
+            if (listener!=null){
+                listener.onChange("读取Characteristic[" + uuid + "]:\n" + readStr);
+            }
+//            logTv("读取Characteristic[" + uuid + "]:\n" + readStr);
             readStr = String.valueOf(++readVal);
             writeBackStr = readStr;
             Timer timer = new Timer();
@@ -181,7 +151,10 @@ public class BleClientActivity extends Activity {
             writeVal++;
             writeBackStr = String.valueOf(writeVal);
             Log.i(TAG, String.format("onCharacteristicWrite:%s,%s,%s,%s,%s", gatt.getDevice().getName(), gatt.getDevice().getAddress(), uuid, writeVal, status));
-            logTv("写入Characteristic[" + uuid + "]:\n" + valueStr);
+            if (listener!=null){
+                listener.onChange("写入Characteristic[" + uuid + "]:\n" + valueStr);
+            }
+//            logTv("写入Characteristic[" + uuid + "]:\n" + valueStr);
             Timer timer = new Timer();
             TimerTask task = new TimerTask() {
                 @Override
@@ -198,7 +171,10 @@ public class BleClientActivity extends Activity {
             UUID uuid = characteristic.getUuid();
             String valueStr = new String(characteristic.getValue());
             Log.i(TAG, String.format("onCharacteristicChanged:%s,%s,%s,%s", gatt.getDevice().getName(), gatt.getDevice().getAddress(), uuid, valueStr));
-            logTv("通知Characteristic[" + uuid + "]:\n" + valueStr);
+            if (listener!=null){
+                listener.onChange("通知Characteristic[" + uuid + "]:\n" + valueStr);
+            }
+//            logTv("通知Characteristic[" + uuid + "]:\n" + valueStr);
         }
 
         @Override
@@ -206,7 +182,10 @@ public class BleClientActivity extends Activity {
             UUID uuid = descriptor.getUuid();
             String valueStr = Arrays.toString(descriptor.getValue());
             Log.i(TAG, String.format("onDescriptorRead:%s,%s,%s,%s,%s", gatt.getDevice().getName(), gatt.getDevice().getAddress(), uuid, valueStr, status));
-            logTv("读取Descriptor[" + uuid + "]:\n" + valueStr);
+            if (listener!=null){
+                listener.onChange("读取Descriptor[" + uuid + "]:\n" + valueStr);
+            }
+//            logTv("读取Descriptor[" + uuid + "]:\n" + valueStr);
         }
 
         @Override
@@ -214,7 +193,10 @@ public class BleClientActivity extends Activity {
             UUID uuid = descriptor.getUuid();
             String valueStr = Arrays.toString(descriptor.getValue());
             Log.i(TAG, String.format("onDescriptorWrite:%s,%s,%s,%s,%s", gatt.getDevice().getName(), gatt.getDevice().getAddress(), uuid, valueStr, status));
-            logTv("写入Descriptor[" + uuid + "]:\n" + valueStr);
+            if (listener!=null){
+                listener.onChange("写入Descriptor[" + uuid + "]:\n" + valueStr);
+            }
+//            logTv("写入Descriptor[" + uuid + "]:\n" + valueStr);
         }
     };
 
@@ -225,14 +207,14 @@ public class BleClientActivity extends Activity {
 //            BleDevAdapter.BleDev dev = new BleDevAdapter.BleDev(result.getDevice(), result);
             if (result.getDevice().getName() != null) {
                 if (result.getDevice().getName().contains("mi") || result.getDevice().getName().contains("OPPO")) {
-                    mBluetoothGatt = result.getDevice().connectGatt(BleClientActivity.this, false, mBluetoothGattCallback);
+                    mBluetoothGatt = result.getDevice().connectGatt(BleBindService.this, false, mBluetoothGattCallback);
                     bluetoothLeScanner.stopScan(mScanCallback);
                 }
             }
         }
     };
 
-    private void scanBle() {
+    public void scanBle() {
         isScanning = true;
 //        BluetoothAdapter bluetoothAdapter = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE).getDefaultAdapter();
 
@@ -247,35 +229,14 @@ public class BleClientActivity extends Activity {
 //            }
 //        }, 3000);
     }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        closeConn();
-    }
-
     // BLE中心设备连接外围设备的数量有限(大概2~7个)，在建立新连接之前必须释放旧连接资源，否则容易出现连接错误133
-    private void closeConn() {
+    public void closeConn() {
         if (mBluetoothGatt != null) {
             mBluetoothGatt.disconnect();
             mBluetoothGatt.close();
         }
     }
 
-    // 扫描BLE
-    public void reScan(View view) {
-        scanBle();
-    }
-
-    // 注意：连续频繁读写数据容易失败，读写操作间隔最好200ms以上，或等待上次回调完成后再进行下次读写操作！
-    // 读取数据成功会回调->onCharacteristicChanged()
-    public void read(View view) {
-        BluetoothGattService service = getGattService(UUID_SERVICE);
-        if (service != null) {
-            BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID_CHAR_READ_NOTIFY);//通过UUID获取可读的Characteristic
-            mBluetoothGatt.readCharacteristic(characteristic);
-        }
-    }
     public void read() {
         BluetoothGattService service = getGattService(UUID_SERVICE);
         if (service != null) {
@@ -283,20 +244,6 @@ public class BleClientActivity extends Activity {
             mBluetoothGatt.readCharacteristic(characteristic);
         }
     }
-
-    // 注意：连续频繁读写数据容易失败，读写操作间隔最好200ms以上，或等待上次回调完成后再进行下次读写操作！
-    // 写入数据成功会回调->onCharacteristicWrite()
-    public void write(View view) {
-        BluetoothGattService service = getGattService(UUID_SERVICE);
-        if (service != null) {
-            String text = mWriteET.getText().toString();
-
-            BluetoothGattCharacteristic characteristic = service.getCharacteristic(UUID_CHAR_WRITE);//通过UUID获取可写的Characteristic
-            characteristic.setValue(text); //单次最多20个字节
-            mBluetoothGatt.writeCharacteristic(characteristic);
-        }
-    }
-
     public void write() {
         BluetoothGattService service = getGattService(UUID_SERVICE);
         if (service != null) {
@@ -306,12 +253,8 @@ public class BleClientActivity extends Activity {
         }
     }
 
-    public void clearConsole(View view){
-        mTips.setText("");
-
-    }
     // 设置通知Characteristic变化会回调->onCharacteristicChanged()
-    public void setNotify(View view) {
+    public void setNotify() {
         BluetoothGattService service = getGattService(UUID_SERVICE);
         if (service != null) {
             // 设置Characteristic通知
@@ -326,6 +269,7 @@ public class BleClientActivity extends Activity {
         }
     }
 
+
     // 获取Gatt服务
     private BluetoothGattService getGattService(UUID uuid) {
         if (!isConnected) {
@@ -338,16 +282,6 @@ public class BleClientActivity extends Activity {
         return service;
     }
 
-    // 输出日志
-    private void logTv(final String msg) {
-        if (isDestroyed())
-            return;
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                APP.toast(msg, 0);
-                mTips.setText(msg);
-            }
-        });
-    }
+
+
 }
