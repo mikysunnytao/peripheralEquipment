@@ -11,6 +11,8 @@ import android.view.Gravity;
 import android.view.Window;
 import android.view.WindowManager;
 
+import com.fengtao.device.peripheralequipment.service.ble.BleBackgroundService;
+
 public class OnePiexlActivity extends Activity {
 
     private BroadcastReceiver endReceiver;

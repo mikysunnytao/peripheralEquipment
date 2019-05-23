@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -14,11 +15,15 @@ import android.os.IBinder;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.fengtao.device.peripheralequipment.APP;
 import com.fengtao.device.peripheralequipment.R;
-import com.fengtao.device.peripheralequipment.service.BleBindService;
+import com.fengtao.device.peripheralequipment.broadcast.HomeWatcherReceiver;
+import com.fengtao.device.peripheralequipment.broadcast.OnePixelReceiver;
+import com.fengtao.device.peripheralequipment.service.ble.BleBackgroundService;
+import com.fengtao.device.peripheralequipment.service.ble.BleBindService;
 
 
 /**
@@ -30,15 +35,19 @@ public class BleClientActivity extends Activity {
     private TextView mTips;
     public static final String TAG = BleClientActivity.class.getSimpleName();
     private boolean isBind;
+    private HomeWatcherReceiver homeWatcherReceiver;
     private BleBindService bindService;
+    private ScrollView scrollView;
 
+    private OnePixelReceiver onePixelReceiver;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bleclient);
         mWriteET = findViewById(R.id.et_write);
         mTips = findViewById(R.id.tv_tips);
-
+        scrollView = findViewById(R.id.content_scroller);
+        homeWatcherReceiver = new HomeWatcherReceiver();
         BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
         if (adapter == null) {
             APP.toast("本机没有找到蓝牙硬件或驱动！", 0);
@@ -70,13 +79,20 @@ public class BleClientActivity extends Activity {
                     break;
                 }
             }
-        }else {
+        } else {
             bindBleService();
         }
-
+        onePixelReceiver = new OnePixelReceiver();
+        IntentFilter screenFilter = new IntentFilter();
+        screenFilter.addAction(Intent.ACTION_SCREEN_OFF);
+        screenFilter.addAction(Intent.ACTION_SCREEN_ON);
+        registerReceiver(onePixelReceiver,screenFilter);
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_CLOSE_SYSTEM_DIALOGS);
+        registerReceiver(homeWatcherReceiver, filter);
     }
 
-    private void bindBleService(){
+    private void bindBleService() {
         Intent service = new Intent(this, BleBindService.class);
         bindService(service, connection, Context.BIND_AUTO_CREATE);
     }
@@ -85,7 +101,8 @@ public class BleClientActivity extends Activity {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             isBind = true;
-            Log.i(TAG,"service connected");
+            sendBroadcast(new Intent(BleBackgroundService.CLOSE_TAG));
+            Log.i(TAG, "service connected");
             BleBindService.ValueChangeBinder binder = (BleBindService.ValueChangeBinder) service;
             bindService = binder.getService();
             bindService.scanBle();
@@ -100,7 +117,7 @@ public class BleClientActivity extends Activity {
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            Log.i(TAG,"service disconnected");
+            Log.i(TAG, "service disconnected");
             isBind = false;
         }
     };
@@ -108,10 +125,7 @@ public class BleClientActivity extends Activity {
     @Override
     protected void onStop() {
         super.onStop();
-        if (isBind) {
-            bindService.closeConn();
-            unbindService(connection);
-        }
+
     }
 
     @Override
@@ -124,11 +138,20 @@ public class BleClientActivity extends Activity {
         }
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+    }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        unregisterReceiver(homeWatcherReceiver);
 //        closeConn();
+        if (isBind) {
+            bindService.closeConn();
+            unbindService(connection);
+        }
     }
 
 
@@ -175,7 +198,8 @@ public class BleClientActivity extends Activity {
             @Override
             public void run() {
                 APP.toast(msg, 0);
-                mTips.setText(msg);
+                mTips.append(msg+"\n\n");
+                scrollView.fullScroll(ScrollView.FOCUS_DOWN);
             }
         });
     }

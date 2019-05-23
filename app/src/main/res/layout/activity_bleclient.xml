@@ -71,6 +71,7 @@
         app:layout_constraintTop_toBottomOf="@+id/btn_notify" />
 
     <ScrollView
+        android:id="@+id/content_scroller"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:background="@drawable/stroke"
@@ -83,6 +84,8 @@
 
         <TextView
             android:id="@+id/tv_tips"
+            android:scrollbarStyle="insideOverlay"
+            android:fadeScrollbars="false"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
     </ScrollView>

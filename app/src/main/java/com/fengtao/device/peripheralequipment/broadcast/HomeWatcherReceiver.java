@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
+import com.fengtao.device.peripheralequipment.service.ble.BleBackgroundService;
+
 /**
  * 监听Home键事件，通过广播获取Home键事件
  */
@@ -28,11 +30,13 @@ public class HomeWatcherReceiver extends BroadcastReceiver {
             if (SYSTEM_DIALOG_REASON_HOME_KEY.equals(reason)) {
                 // 短按Home键
                 Log.i(LOG_TAG, "homekey");
+                context.startService(new Intent(context,BleBackgroundService.class));
 
             }
             else if (SYSTEM_DIALOG_REASON_LOCK.equals(reason)) {
                 // 锁屏
                 Log.i(LOG_TAG, "lock");
+                context.startService(new Intent(context,BleBackgroundService.class));
             }
 
 

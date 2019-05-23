@@ -29,14 +29,14 @@
             android:theme="@style/OnePixelActivity"/>
         <!--应用进程优先级最高为1000-->
         <!--在Manifest.xml文件中设置persistent属性为true，则可使该服务免受out-of-memory killer的影响。但是这种做法一定要谨慎，系统服务太多将严重影响系统的整体运行效率。-->
-        <service android:name=".service.BleBackgroundService"
+        <service android:name=".service.ble.BleBackgroundService"
             android:priority="1000"
             android:persistent="true"></service>
-        <service android:name=".service.BleBindService">
+        <service android:name=".service.ble.BleBindService">
         </service>
         <service android:name=".service.guard.LocalService" android:enabled="true" android:exported="true"></service>
         <service android:name=".service.guard.RemoteService" android:enabled="true" android:exported="true" android:process=":remote"></service>
-        <receiver android:name=".broadcast.OnePixelReceiver"></receiver>
+        <!--<receiver android:name=".broadcast.OnePixelReceiver"></receiver>-->
     </application>
 
 </manifest>

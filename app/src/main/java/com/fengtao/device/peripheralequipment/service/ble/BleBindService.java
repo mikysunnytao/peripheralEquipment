@@ -1,4 +1,4 @@
-package com.fengtao.device.peripheralequipment.service;
+package com.fengtao.device.peripheralequipment.service.ble;
 
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
@@ -20,6 +20,7 @@ import android.util.Log;
 
 import com.fengtao.device.peripheralequipment.APP;
 import com.fengtao.device.peripheralequipment.activity.BleClientActivity;
+import com.fengtao.device.peripheralequipment.util.DateUtil;
 
 import java.util.Arrays;
 import java.util.Timer;
@@ -82,16 +83,14 @@ public class BleBindService extends Service {
             if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_CONNECTED) {
                 isConnected = true;
                 gatt.discoverServices(); //启动服务发现
-
             } else {
                 isConnected = false;
                 scanBle();
-//                closeConn();
             }
 
 
             if (listener!=null){
-                listener.onChange(String.format(status == 0 ? (newState == 2 ? "与[%s]连接成功" : "与[%s]连接断开") : ("与[%s]连接出错,错误码:" + status), dev));
+                listener.onChange(DateUtil.getCurrDateStr()+":"+String.format(status == 0 ? (newState == 2 ? "与[%s]连接成功" : "与[%s]连接断开") : ("与[%s]连接出错,错误码:" + status), dev));
             }
 //            logTv(String.format(status == 0 ? (newState == 2 ? "与[%s]连接成功" : "与[%s]连接断开") : ("与[%s]连接出错,错误码:" + status), dev));
         }
@@ -127,20 +126,20 @@ public class BleBindService extends Service {
             readStr = String.valueOf(readVal);
             Log.i(TAG, String.format("onCharacteristicRead:%s,%s,%s,%s,%s", gatt.getDevice().getName(), gatt.getDevice().getAddress(), uuid, readStr, status));
             if (listener!=null){
-                listener.onChange("读取Characteristic[" + uuid + "]:\n" + readStr);
+                listener.onChange(DateUtil.getCurrDateStr()+":"+"读取Characteristic[" + uuid + "]:\n" + readStr);
             }
 //            logTv("读取Characteristic[" + uuid + "]:\n" + readStr);
             readStr = String.valueOf(++readVal);
             writeBackStr = readStr;
-            Timer timer = new Timer();
-            TimerTask task = new TimerTask() {
-                @Override
-                public void run() {
-                    write();
-                }
-            };
-            timer.schedule(task,1000);
-
+//            Timer timer = new Timer();
+//            TimerTask task = new TimerTask() {
+//                @Override
+//                public void run() {
+//                    write();
+//                }
+//            };
+//            timer.schedule(task,10);
+                write();
         }
 
         @Override
@@ -152,18 +151,18 @@ public class BleBindService extends Service {
             writeBackStr = String.valueOf(writeVal);
             Log.i(TAG, String.format("onCharacteristicWrite:%s,%s,%s,%s,%s", gatt.getDevice().getName(), gatt.getDevice().getAddress(), uuid, writeVal, status));
             if (listener!=null){
-                listener.onChange("写入Characteristic[" + uuid + "]:\n" + valueStr);
+                listener.onChange(DateUtil.getCurrDateStr()+":"+"写入Characteristic[" + uuid + "]:\n" + valueStr);
             }
 //            logTv("写入Characteristic[" + uuid + "]:\n" + valueStr);
-            Timer timer = new Timer();
-            TimerTask task = new TimerTask() {
-                @Override
-                public void run() {
-                    read();
-                }
-            };
-            timer.schedule(task,1000);
-
+//            Timer timer = new Timer();
+//            TimerTask task = new TimerTask() {
+//                @Override
+//                public void run() {
+//                    read();
+//                }
+//            };
+//            timer.schedule(task,10);
+            read();
         }
 
         @Override
@@ -172,7 +171,7 @@ public class BleBindService extends Service {
             String valueStr = new String(characteristic.getValue());
             Log.i(TAG, String.format("onCharacteristicChanged:%s,%s,%s,%s", gatt.getDevice().getName(), gatt.getDevice().getAddress(), uuid, valueStr));
             if (listener!=null){
-                listener.onChange("通知Characteristic[" + uuid + "]:\n" + valueStr);
+                listener.onChange(DateUtil.getCurrDateStr()+":"+"通知Characteristic[" + uuid + "]:\n" + valueStr);
             }
 //            logTv("通知Characteristic[" + uuid + "]:\n" + valueStr);
         }
@@ -183,7 +182,7 @@ public class BleBindService extends Service {
             String valueStr = Arrays.toString(descriptor.getValue());
             Log.i(TAG, String.format("onDescriptorRead:%s,%s,%s,%s,%s", gatt.getDevice().getName(), gatt.getDevice().getAddress(), uuid, valueStr, status));
             if (listener!=null){
-                listener.onChange("读取Descriptor[" + uuid + "]:\n" + valueStr);
+                listener.onChange(DateUtil.getCurrDateStr()+":"+"读取Descriptor[" + uuid + "]:\n" + valueStr);
             }
 //            logTv("读取Descriptor[" + uuid + "]:\n" + valueStr);
         }
@@ -194,7 +193,7 @@ public class BleBindService extends Service {
             String valueStr = Arrays.toString(descriptor.getValue());
             Log.i(TAG, String.format("onDescriptorWrite:%s,%s,%s,%s,%s", gatt.getDevice().getName(), gatt.getDevice().getAddress(), uuid, valueStr, status));
             if (listener!=null){
-                listener.onChange("写入Descriptor[" + uuid + "]:\n" + valueStr);
+                listener.onChange(DateUtil.getCurrDateStr()+":"+"写入Descriptor[" + uuid + "]:\n" + valueStr);
             }
 //            logTv("写入Descriptor[" + uuid + "]:\n" + valueStr);
         }
@@ -206,6 +205,7 @@ public class BleBindService extends Service {
         public void onScanResult(int callbackType, ScanResult result) {
 //            BleDevAdapter.BleDev dev = new BleDevAdapter.BleDev(result.getDevice(), result);
             if (result.getDevice().getName() != null) {
+                //此处连接设备的标志，作为服务端的标志
                 if (result.getDevice().getName().contains("mi") || result.getDevice().getName().contains("OPPO")) {
                     mBluetoothGatt = result.getDevice().connectGatt(BleBindService.this, false, mBluetoothGattCallback);
                     bluetoothLeScanner.stopScan(mScanCallback);
