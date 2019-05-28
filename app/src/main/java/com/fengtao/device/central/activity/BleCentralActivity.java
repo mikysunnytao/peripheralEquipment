@@ -1,8 +1,10 @@
-package com.fengtao.device.peripheralequipment.activity;
+package com.fengtao.device.central.activity;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -12,34 +14,38 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.support.annotation.RequiresApi;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-import com.fengtao.device.peripheralequipment.APP;
-import com.fengtao.device.peripheralequipment.R;
-import com.fengtao.device.peripheralequipment.broadcast.HomeWatcherReceiver;
-import com.fengtao.device.peripheralequipment.broadcast.OnePixelReceiver;
-import com.fengtao.device.peripheralequipment.service.ble.BleBackgroundService;
-import com.fengtao.device.peripheralequipment.service.ble.BleBindService;
+import com.fengtao.device.central.APP;
+import com.fengtao.device.central.R;
+import com.fengtao.device.central.broadcast.HomeWatcherReceiver;
+import com.fengtao.device.central.broadcast.OnePixelReceiver;
+import com.fengtao.device.central.service.ble.BleBackgroundService;
+import com.fengtao.device.central.service.ble.BleBindService;
+import com.fengtao.device.central.util.BluetoothUtils;
 
 
 /**
  * BLE客户端(主机/中心设备/Central)
  */
-public class BleClientActivity extends Activity {
+public class BleCentralActivity extends Activity {
 
     private EditText mWriteET;
     private TextView mTips;
-    public static final String TAG = BleClientActivity.class.getSimpleName();
+//    public static final String SERVICE_UUID = "10000000-0000-0000-0000-000000000000";
+    public static final String TAG = BleCentralActivity.class.getSimpleName();
     private boolean isBind;
     private HomeWatcherReceiver homeWatcherReceiver;
+    private OnePixelReceiver onePixelReceiver;
     private BleBindService bindService;
     private ScrollView scrollView;
 
-    private OnePixelReceiver onePixelReceiver;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,6 +55,7 @@ public class BleClientActivity extends Activity {
         scrollView = findViewById(R.id.content_scroller);
         homeWatcherReceiver = new HomeWatcherReceiver();
         BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+
         if (adapter == null) {
             APP.toast("本机没有找到蓝牙硬件或驱动！", 0);
             finish();
@@ -75,7 +82,7 @@ public class BleClientActivity extends Activity {
                     , Manifest.permission.ACCESS_COARSE_LOCATION};
             for (String str : permissions) {
                 if (checkSelfPermission(str) != PackageManager.PERMISSION_GRANTED) {
-                    requestPermissions(permissions, 111);
+                    ActivityCompat.requestPermissions(this,permissions, 111);
                     break;
                 }
             }
@@ -90,11 +97,28 @@ public class BleClientActivity extends Activity {
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_CLOSE_SYSTEM_DIALOGS);
         registerReceiver(homeWatcherReceiver, filter);
+
+        BluetoothUtils.onOpen(this);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private void onClose(){
+        PendingIntent callbackIntent = PendingIntent.getBroadcast(
+                this,
+                1,
+                new Intent("com.hungrytree.receiver.BleReceiver")
+                        .setPackage(getPackageName()),
+                PendingIntent.FLAG_UPDATE_CURRENT );
+        BluetoothManager bluetoothManager = (BluetoothManager)getSystemService(Context.BLUETOOTH_SERVICE);
+        BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
+        bluetoothAdapter.getBluetoothLeScanner().stopScan(callbackIntent);
     }
 
     private void bindBleService() {
-        Intent service = new Intent(this, BleBindService.class);
-        bindService(service, connection, Context.BIND_AUTO_CREATE);
+//        Intent service = new Intent(this, BleBindService.class);
+//        bindService(service, connection, Context.BIND_AUTO_CREATE);
+        Intent intent = new Intent(this,BleBackgroundService.class);
+        startForegroundService(intent);
     }
 
     ServiceConnection connection = new ServiceConnection() {
@@ -143,6 +167,7 @@ public class BleClientActivity extends Activity {
         super.onStart();
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -150,8 +175,9 @@ public class BleClientActivity extends Activity {
 //        closeConn();
         if (isBind) {
             bindService.closeConn();
-            unbindService(connection);
+//            unbindService(connection);
         }
+        onClose();
     }
 
 

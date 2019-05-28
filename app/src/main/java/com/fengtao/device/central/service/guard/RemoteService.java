@@ -1,4 +1,4 @@
-package com.fengtao.device.peripheralequipment.service.guard;
+package com.fengtao.device.central.service.guard;
 
 import android.app.Service;
 import android.content.ComponentName;

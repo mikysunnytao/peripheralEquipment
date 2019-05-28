@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.fengtao.device.peripheralequipment">
+    package="com.fengtao.device.central">
 
     <uses-permission android:name="android.permission.BLUETOOTH"/>
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
@@ -14,13 +14,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".activity.BleClientActivity">
+        <activity android:name=".activity.BleCentralActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <activity android:name=".activity.OnePiexlActivity"
+        <activity android:name=".activity.OnePixelActivity"
             android:configChanges="orientation|keyboardHidden|screenSize|navigation|keyboard"
             android:excludeFromRecents="true"
             android:exported="false"
@@ -31,11 +31,23 @@
         <!--在Manifest.xml文件中设置persistent属性为true，则可使该服务免受out-of-memory killer的影响。但是这种做法一定要谨慎，系统服务太多将严重影响系统的整体运行效率。-->
         <service android:name=".service.ble.BleBackgroundService"
             android:priority="1000"
-            android:persistent="true"></service>
+            android:persistent="true">
+            <intent-filter>
+                <action android:name="com.fengtao.receiver.BleService"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </service>
         <service android:name=".service.ble.BleBindService">
         </service>
         <service android:name=".service.guard.LocalService" android:enabled="true" android:exported="true"></service>
         <service android:name=".service.guard.RemoteService" android:enabled="true" android:exported="true" android:process=":remote"></service>
+        <service android:name=".service.ble.BleService">
+            <!--<intent-filter>-->
+                <!--<action android:name="com.fengtao.device.central.service.BleService"/>-->
+                <!--<category android:name="android.intent.category.DEFAULT"/>-->
+            <!--</intent-filter>-->
+
+        </service>
         <!--<receiver android:name=".broadcast.OnePixelReceiver"></receiver>-->
     </application>
 

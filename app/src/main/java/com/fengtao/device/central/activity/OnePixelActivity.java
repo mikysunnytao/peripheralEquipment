@@ -1,4 +1,4 @@
-package com.fengtao.device.peripheralequipment.activity;
+package com.fengtao.device.central.activity;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -11,9 +11,7 @@ import android.view.Gravity;
 import android.view.Window;
 import android.view.WindowManager;
 
-import com.fengtao.device.peripheralequipment.service.ble.BleBackgroundService;
-
-public class OnePiexlActivity extends Activity {
+public class OnePixelActivity extends Activity {
 
     private BroadcastReceiver endReceiver;
 
@@ -51,7 +49,7 @@ public class OnePiexlActivity extends Activity {
      */
     private void checkScreen() {
 
-        PowerManager pm = (PowerManager) OnePiexlActivity.this.getSystemService(Context.POWER_SERVICE);
+        PowerManager pm = (PowerManager) OnePixelActivity.this.getSystemService(Context.POWER_SERVICE);
         boolean isScreenOn = pm.isInteractive();
         if (isScreenOn) {
             finish();

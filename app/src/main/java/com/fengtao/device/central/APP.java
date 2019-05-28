@@ -1,4 +1,4 @@
-package com.fengtao.device.peripheralequipment;
+package com.fengtao.device.central;
 
 import android.annotation.SuppressLint;
 import android.app.Application;

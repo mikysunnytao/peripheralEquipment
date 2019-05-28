@@ -1,11 +1,10 @@
-package com.fengtao.device.peripheralequipment.broadcast;
+package com.fengtao.device.central.broadcast;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 
-import com.fengtao.device.peripheralequipment.activity.OnePiexlActivity;
-import com.fengtao.device.peripheralequipment.service.ble.BleBackgroundService;
+import com.fengtao.device.central.activity.OnePixelActivity;
 
 /**
  * Created by Administrator on 2017/7/10.
@@ -14,8 +13,8 @@ import com.fengtao.device.peripheralequipment.service.ble.BleBackgroundService;
 public class OnePixelReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {    //屏幕关闭启动1像素Activity
-            Intent it = new Intent(context, OnePiexlActivity.class);
+        if (intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {   //屏幕关闭启动1像素Activity
+            Intent it = new Intent(context, OnePixelActivity.class);
             it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             //启动后台服务
 //            context.startService(new Intent(context,BleBackgroundService.class));
